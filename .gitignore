@@ -1,5 +1,6 @@
 # NP
 datasets/
+mongo_creds.txt
 
 
 # Byte-compiled / optimized / DLL files
