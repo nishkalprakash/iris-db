@@ -34,7 +34,6 @@ class LoggerManager:
             cls._logger.setLevel(level)
         return cls._logger
 
-lg = LoggerManager.get_logger(__name__)
 
 class FileManager:
     """Singleton File Manager for consistent file operations."""
@@ -60,6 +59,7 @@ class FileManager:
     @staticmethod
     def read_creds(filename="mongo_creds.txt"):
         """Read MongoDB credentials from a file using pathlib"""
+        lg = LoggerManager.get_logger(__name__)
         if not Path(filename).exists():
             _ERROR_MSG = f"Credentials file {filename} does not exist.Please create a mongo_creds.txt with user:passwd"
             lg.error(_ERROR_MSG)
@@ -67,6 +67,14 @@ class FileManager:
         user, passwd = Path(filename).read_text().strip().split(":")
         lg.debug("MongoDB credentials loaded successfully.")
         return user, passwd
+    
+    @staticmethod
+    def ensure_exists(path):
+        # check if path is Path() type if not make it
+        if not isinstance(path, Path):
+            path = Path(path)
+        if not path.exists():
+            path.mkdir(parents=True, exist_ok=True)
 
 
 #%% Testing
