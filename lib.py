@@ -1,7 +1,6 @@
-#%% init
+#%% lib.py
 # from json import load, dumps
 from pathlib import Path
-
 ## Logger setup
 import logging
 pymongo_logger = logging.getLogger('pymongo')
@@ -34,11 +33,11 @@ class LoggerManager:
             cls._logger.setLevel(level)
         return cls._logger
 
-
+import shutil
 class FileManager:
     """Singleton File Manager for consistent file operations."""
     _instance = None
-
+    lg = LoggerManager.get_logger(__name__)
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(FileManager, cls).__new__(cls)
@@ -56,25 +55,38 @@ class FileManager:
     #     with open(filename, 'w') as file:
     #         file.write(dumps(data, indent=4, ensure_ascii=False))
     
-    @staticmethod
-    def read_creds(filename="mongo_creds.txt"):
+    # @staticmethod
+    def read_creds(self,filename="mongo_creds.txt"):
         """Read MongoDB credentials from a file using pathlib"""
-        lg = LoggerManager.get_logger(__name__)
+        
         if not Path(filename).exists():
             _ERROR_MSG = f"Credentials file {filename} does not exist.Please create a mongo_creds.txt with user:passwd"
-            lg.error(_ERROR_MSG)
+            self.lg.error(_ERROR_MSG)
             raise FileNotFoundError(_ERROR_MSG)
         user, passwd = Path(filename).read_text().strip().split(":")
-        lg.debug("MongoDB credentials loaded successfully.")
+        self.lg.debug("MongoDB credentials loaded successfully.")
         return user, passwd
     
-    @staticmethod
-    def ensure_exists(path):
+    # @staticmethod
+    def ensure_exists(self,path):
         # check if path is Path() type if not make it
         if not isinstance(path, Path):
             path = Path(path)
         if not path.exists():
             path.mkdir(parents=True, exist_ok=True)
+        self.lg.debug(f"Ensured directory exists: {path}")
+    
+    # @staticmethod
+    def copy_file(self, src, dest, overwrite=False):
+        if not isinstance(dest, Path):
+            dest = Path(dest)
+        if not overwrite and dest.exists():
+            self.lg.info(f"File {dest} already exists. Skipping copy.")
+            return
+        self.ensure_exists(dest.parent)
+        shutil.copy2(src, dest)
+        self.lg.info(f"Copied file from {src} to {dest}")
+
 
 
 #%% Testing

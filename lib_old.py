@@ -49,7 +49,7 @@ class Parallel:
 
     def __call__(
         self, atomic_function, paths, batch_size=100, chunksize=10, free_core=1
-    ) -> dict:
+    ) -> iter:
         self.paths=paths
         self.batch_size=batch_size
         self.ctr = self.done = 0
