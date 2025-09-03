@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from pymongo.collection import Collection
-from lib import LoggerManager as lm, FileManager as fm
+from lib import LoggerManager as LM, FileManager as FM
 
 
 
@@ -11,7 +11,8 @@ from difflib import get_close_matches
 
 # from time import sleep
 # logger = LoggerManager.get_logger(name=Path(__file__).stem)
-lg = lm.get_logger(__name__,level="DEBUG")
+lg = LM.get_logger(__name__,level="ERROR")
+fm=FM()
 # lg = lm.get_logger(__name__,level="INFO")
 # set log level to info
 # lg.setLevel(logging.DEBUG)
@@ -210,7 +211,7 @@ class IrisDB:
                 # ignore if duplicate key error
                 res = coll.insert_many(docs, ordered=False)
         except Exception as e:
-            lg.error(f"Error inserting document into {self.ds_id} collection: {e}")
+            lg.error(f"Error inserting document into {self.ds_id} collection")
             res = None
         lg.info(f"Inserted document(s) into {self.ds_id} collection.")
         return res
