@@ -4,8 +4,10 @@ Code to survey the Iris database that we have and to create a document that will
 
 ## Databases Documented
 
-- [] CASIA-V1
-- [] MMU.v1
-- [] MMU.v2
-- [] IITDv1
-- [] Casia
+- [x] CASIA_v1
+- [x] CASIA_iris_thousand
+- [] MMU_v1
+- [] MMU_v2
+- [] IIT_v1
+- [] CASIA_v4
+- [] UBIRIS_v1
