@@ -5,4 +5,4 @@
 
 1. Create a iris-db env via conda
 ```
-conda create -n iris-db python pymongo pandas
+conda create -n iris-db python pymongo pandas pillow

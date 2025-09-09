@@ -11,13 +11,13 @@ from difflib import get_close_matches
 
 # from time import sleep
 # logger = LoggerManager.get_logger(name=Path(__file__).stem)
-lg = LM.get_logger(__name__,level="ERROR")
+lg = LM.get_logger(__name__,level="DEBUG")
 fm=FM()
 # lg = lm.get_logger(__name__,level="INFO")
 # set log level to info
 # lg.setLevel(logging.DEBUG)
 
-class IrisDB:
+class IrisDB():
     """
     In: None
     Out: IrisDB Object that can be used to connect to a particular db
@@ -81,13 +81,7 @@ class IrisDB:
         lg.debug("MongoDB connection established successfully.")
         return conn
     
-    @property
-    @lru_cache(maxsize=None) # Caches the result after the first call
-    def meta_coll(self):
-        """Lazily creates and returns the Meta collection using the client."""
-        coll = self.mongo_db[self.meta_coll_name]
-        lg.debug("Returned meta collection.")
-        return coll
+
 
     @property
     @lru_cache(maxsize=None) # Caches the result after the first call
@@ -96,11 +90,11 @@ class IrisDB:
         lg.debug("Connecting to meta db to find avail ds")
         # This will automatically trigger the mongo_client property if needed
         try:
-            avail_ds = {i['ds_id'] for i in self.meta_coll.find({}, {'_id': 0, 'ds_id': 1})}
+            avail_ds = set(self.mongo_db.list_collection_names())
         except Exception as e:
             lg.error(f"Error fetching available datasets: {e}")
             raise e
-        avail_ds.add(self.meta_coll_name)
+        # avail_ds.add(self.meta_coll_name)
         # print(avail_ds)
         lg.debug(f"Fetched List of avail databases -> {avail_ds}")
         return avail_ds
@@ -144,13 +138,13 @@ class IrisDB:
         return None
 
     # @lru_cache(maxsize=None) # Caches the result after the first call
-    def set_meta_primary(self):
-        """Get the meta collection"""
-        lg.debug("Accessing meta collection...")
-        self.ds_id = self.meta_coll_name
-        self.coll = self.meta_coll
-        return self.meta_coll
-    meta_connect = set_meta_primary
+    # def set_meta_primary(self):
+    #     """Get the meta collection"""
+    #     lg.debug("Accessing meta collection...")
+    #     self.ds_id = self.meta_coll_name
+    #     self.coll = self.meta_coll
+    #     return self.meta_coll
+    # meta_connect = set_meta_primary
 
     # def meta_connect(self):
     #     """Connect to the meta collection"""
@@ -211,10 +205,99 @@ class IrisDB:
                 # ignore if duplicate key error
                 res = coll.insert_many(docs, ordered=False)
         except Exception as e:
-            lg.error(f"Error inserting document into {self.ds_id} collection")
+            lg.error(f"Error inserting document into {self.ds_id} collection, error: {e}")
             res = None
         lg.info(f"Inserted document(s) into {self.ds_id} collection.")
         return res
+
+    def find(self, query, proj=None, collection=None):
+        """Get data from the connected collection"""
+        if collection is None:
+            if not hasattr(self, 'coll'):
+                lg.error("No collection connected. Please call connect() first.")
+                return None
+            collection = self.coll
+
+        return collection.find(query, proj)
+    
+    def find_one(self, query, proj=None, collection=None):
+        """Get a single document from the connected collection"""
+        if collection is None:
+            if not hasattr(self, 'coll'):
+                lg.error("No collection connected. Please call connect() first.")
+                return None
+            collection = self.coll
+
+        return collection.find_one(query, proj)
+    
+
+        
+    def get_num_eyes_per_person(self,tag='orig'):
+        num_eyes_per_person = {}
+        for person in self.find({}).distinct('person_id'):
+            n = str(len(list(self.find({'person_id': person}).distinct('eye_id'))))
+            try:
+                num_eyes_per_person[n].append(person)
+            except KeyError:
+                num_eyes_per_person[n] = [person]
+        lg.debug(f"DS_ID: {self.ds_id} \n num_eyes_per_person: {num_eyes_per_person}")
+        return num_eyes_per_person
+
+    def get_num_eyes_per_person_count(self,tag='orig'):
+        num_eyes_per_person = self.get_num_eyes_per_person(tag)
+        lg.debug(f"DS_ID: {self.ds_id} \n num_eyes_per_person_count: {num_eyes_per_person}")
+        return {k: len(v) for k, v in num_eyes_per_person.items()}
+
+    def get_num_samples_per_eye(self,tag='orig'):
+        num_samples_per_eye = {}
+        for eye in self.find({}).distinct('eye_id'):
+            n = str(len(list(self.find({'eye_id': eye}))))
+            try:
+                num_samples_per_eye[n].append(eye)
+            except KeyError:
+                num_samples_per_eye[n] = [eye]
+        lg.debug(f"DS_ID: {self.ds_id} \n num_samples_per_eye: {num_samples_per_eye}")
+        return num_samples_per_eye
+
+    def get_num_samples_per_eye_count(self,tag='orig'):
+        num_samples_per_eye = self.get_num_samples_per_eye(tag)
+        lg.debug(f"DS_ID: {self.ds_id} \n num_samples_per_eye_count: {num_samples_per_eye}")
+        return {k: len(v) for k, v in num_samples_per_eye.items()}
+
+    def get_num_eyes(self,tag='orig'):
+        lg.debug(f"DS_ID: {self.ds_id} \n num_eyes: {len(self.find({}).distinct('eye_id'))}")
+        return len(self.find({}).distinct('eye_id'))
+
+    def get_num_people(self,tag='orig'):
+        lg.debug(f"DS_ID: {self.ds_id} \n num_people: {len(self.find({}).distinct('person_id'))}")
+        return len(self.find({}).distinct('person_id'))
+
+    def get_num_images(self,tag='orig'):
+        count=self.coll.count_documents({})
+        lg.debug(f"DS_ID: {self.ds_id} \n num_images: {count}")
+        return count
+
+
+    def get_tag_data(self, tag='orig', orig_db_base=None):
+        img = self.find_one({}, {'_id': 0, 'orig_paths': 1, 'img_specs': 1})
+        data = {
+            "info": "original images",
+            "num_images": self.get_num_images(tag),
+            "num_people": self.get_num_people(tag),
+            "num_eyes": self.get_num_eyes(tag),
+            "num_eyes_per_person": self.get_num_eyes_per_person(tag),
+            "num_eyes_per_person_count": self.get_num_eyes_per_person_count(tag), 
+            "num_samples_per_eye": self.get_num_samples_per_eye(tag),
+            "num_samples_per_eye_count": self.get_num_samples_per_eye_count(tag),
+            "num_sessions": self.find({}).distinct('session_id'),
+            'img_specs': img['img_specs'],
+            'orig_base_': str(orig_db_base) if orig_db_base is not None else img['orig_paths']['base_'],
+        }
+        return data
+
+
+
+
 
     ## feature to get a Mongo Collection by getitem on iris_db object
     def __getitem__(self, coll_name):
@@ -321,6 +404,97 @@ class IrisDB:
             lg.debug("MongoDB connection closed successfully.")
         except Exception as e:
             lg.error(str(e))
+
+
+class IrisMeta(IrisDB):
+    """
+    The obj of this class is to handle metadata operations for the IrisDB.
+    It will have methods to validate, update, and retrieve metadata.
+    It will also have methods to handle versioning of metadata.
+    """
+    META_COLL_NAME = 'meta'
+    def __init__(self, meta_coll_name=None):
+        self.meta_coll_name = self.META_COLL_NAME if meta_coll_name is None else meta_coll_name
+        # self.avail_ds = super().avail_ds + {self.meta_coll_name}
+        super().__init__(ds_id=self.meta_coll_name, meta_coll_name=self.meta_coll_name)
+        # self.connect(self.meta_coll_name)
+
+    # @property
+    # @lru_cache(maxsize=None) # Caches the result after the first call
+    # def meta_coll(self):
+    #     """Lazily creates and returns the Meta collection using the client."""
+    #     coll = self.db.mongo_db[self.meta_coll_name]
+    #     lg.debug("Returned meta collection.")
+    #     return coll
+
+    def get_metadata(self, ds_id: str) -> dict:
+        """Retrieve metadata for a given dataset ID."""
+        if not self.find_ds(ds_id):
+            lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
+            return None
+        metadata = self.find_one({"ds_id": ds_id}, {'_id': 0})
+        if metadata:
+            lg.info(f"Metadata retrieved for dataset ID '{ds_id}'.")
+        else:
+            lg.error(f"No metadata found for dataset ID '{ds_id}'.")
+        return metadata
+    
+    def update_metadata(self, metadata: dict) -> bool:
+        """Update metadata for a given dataset ID."""
+        if "ds_id" not in metadata:
+            lg.error("Metadata must contain 'ds_id' field for update.")
+            return False
+        if not self.find_ds(metadata["ds_id"]):
+            lg.error(f"Dataset ID '{metadata['ds_id']}' not found in available datasets.")
+            return False
+        try:
+            self.update(metadata)
+            lg.info(f"Metadata updated for dataset ID '{metadata['ds_id']}'.")
+            return True
+        except Exception as e:
+            lg.error(f"Error updating metadata for dataset ID '{metadata['ds_id']}': {e}")
+            return False
+
+    def insert_metadata(self, metadata: dict) -> bool:
+        """Insert new metadata for a dataset."""
+        if "ds_id" not in metadata:
+            lg.error("Metadata must contain 'ds_id' field for insertion.")
+            return False
+        if self.find_ds(metadata["ds_id"]):
+            lg.error(f"Dataset ID '{metadata['ds_id']}' already exists in available datasets.")
+            return False
+        try:
+            self.insert(metadata)
+            lg.info(f"Metadata inserted for dataset ID '{metadata['ds_id']}'.")
+            return True
+        except Exception as e:
+            lg.error(f"Error inserting metadata for dataset ID '{metadata['ds_id']}': {e}")
+            return False
+
+    def list_datasets(self) -> list:
+        """List all dataset IDs available in the metadata collection."""
+        datasets = set(self.avail_ds - {self.meta_coll_name})
+        lg.info(f"Available datasets: {datasets}")
+        return datasets
+    get_datasets = get_ds = list_ds = get_avail_ds = list_datasets
+    
+    def delete_metadata(self, ds_id: str) -> bool:
+        """Delete metadata for a given dataset ID."""
+        if not self.find_ds(ds_id):
+            lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
+            return False
+        try:
+            result = self.coll.delete_one({"ds_id": ds_id})
+            if result.deleted_count > 0:
+                lg.info(f"Metadata deleted for dataset ID '{ds_id}'.")
+                return True
+            else:
+                lg.error(f"No metadata found to delete for dataset ID '{ds_id}'.")
+                return False
+        except Exception as e:
+            lg.error(f"Error deleting metadata for dataset ID '{ds_id}': {e}")
+            return False
+    
          
 class Iris:
     """
@@ -335,3 +509,9 @@ class Iris:
         self.image_path = None
         self.md = {}
 
+
+# Example usage:
+if __name__ == "__main__":
+    iris_db = IrisDB()
+    iris_meta = IrisMeta()
+    iris_meta.list_datasets()
