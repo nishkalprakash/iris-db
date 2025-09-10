@@ -64,7 +64,7 @@ ORIG_DB_BASE_ = BASE_ / Path("IITD/IITD V1/Normalized_Images")
 db = IrisDB(DS_ID)
 meta = IrisMeta()
 #%%
-meta_tag = "norm_def"
+new_img_tag = "norm_def"
 metadata_iitd_v1 = {
     "ds_id": DS_ID,
     "db_info": {
@@ -118,16 +118,16 @@ The IIT Delhi IrisDatabase (Version 1.0) is publicly available for academic use 
         "notes": "",
         "periocular": False,
     },
-    "tags": ["orig", meta_tag],
+    "img_tags": ["orig", new_img_tag],
     # "db_specs":{
     "orig": db.get_tag_data(),
-    meta_tag: {
-        "name": "Normalized images default using Daugman's rubber sheet model",
-        'orig_base_': str(ORIG_DB_BASE_),
+    new_img_tag: {
+        "info": "Normalized images default using Daugman's rubber sheet model",
+        'orig_base_path': str(ORIG_DB_BASE_),
     },
     'injested_at': datetime.now()
 }
-meta.update(metadata_iitd_v1)  # delete if exists
+# meta.update(metadata_iitd_v1)  # delete if exists
 # meta.insert()
 
 #%% Insert METADATA to mongodb
@@ -137,7 +137,7 @@ with IrisDB() as db:
     # Use the db object to interact with the database
     meta=db['meta']
     print(db.list_ds())
-    db.update(metadata_iitd_v1)
+    # db.update(metadata_iitd_v1)
     # db.insert(metadata_casia_iris_thousand)
     # print(db.update({
     #     'ds_id': db.find_ds('casia-v1'),
@@ -152,7 +152,7 @@ with IrisDB() as db:
     #     }
     # )
     # print(db.find_ds('cas'))
-    meta.create_index([('ds_id', 1)], unique=True)
+    # meta.create_index([('ds_id', 1)], unique=True)
     # db.update_data(
     #     [{
     #         "ds_id": db.find_ds('casia-v1'),
@@ -186,11 +186,11 @@ try:
     db.coll.create_index([("person_id",ASCENDING)])
     db.coll.create_index([("eye_id",ASCENDING)])
     # folder_tags can be one of 'orig','norm','segm'
-    db.coll.create_index([("folder_tags",ASCENDING)])
+    db.coll.create_index([("img_tags",ASCENDING)])
     # db.coll.create_index([("status",ASCENDING)])
     # index path as well
-    db.coll.create_index([("paths.rel_path_",ASCENDING)],unique=True)
-    db.coll.create_index([("paths.path_",ASCENDING)],unique=True)
+    # db.coll.create_index([("paths.rel_path_",ASCENDING)],unique=True)
+    # db.coll.create_index([("paths.path_",ASCENDING)],unique=True)
     # db.coll.create_index([("paths.common_path_",ASCENDING)],unique=True)
     # db.coll.create_index([("paths.full_path_",ASCENDING)],unique=True)
     # db.coll.create_index([("person_id",ASCENDING),("person_sample_id",ASCENDING)],unique=True)
@@ -199,7 +199,7 @@ except Exception as e:
     lg.error(f"Error creating indexes for {ds_id} collection: {e}")
 
 base_ = DS_BASE_
-folder_tags = metadata_iitd_v1['tags']
+img_tags = metadata_iitd_v1['img_tags']
 session_id = 1
 db.close()
 #%%
@@ -209,83 +209,107 @@ for img_ in images:
     ext = img_.suffix
     # name = P_S.bmp
     #             
-    person_id, sample_id = img_.stem.split('_')  # 
+    person_id, sample_id = map(int,img_.stem.split('_'))  # 
     eye = "L" # default left eye
     # if person_id == 0:
         # person_id = 1000
     eye_id = f"{person_id}_{eye}"
-    
+    image_id = f"{eye_id}_{sample_id}"
+    doc = db.find_one({'image_id': image_id})
+    injested_at = datetime.now()
     # renaming the 2nd session images into continuous id_s
     # if session_id == 2:
     #     sample_id = 3+sample_id
     # if sample_id==0:
         # sample_id = 10
-    person_sample_id = sample_id
+    # person_sample_id = sample_id
     # if eye == 'R':
     #     sample_id -= 5
 
     new_filename_ = Path(f"{eye_id}_{sample_id}{ext}")
-    # status = 'orig'
-
-    rel_path_ = eye_id / new_filename_
-    # orig_path_ = 'orig'/rel_path_
-    # full_orig_path = DS_BASE_ / orig_path_
-    # norm_path_ = 'norm'/rel_path_
-    # full_norm_path_ = DS_BASE_ / norm_path_
-    # seg_path_ = 'seg'/rel_path_
-    # full_seg_path_ = DS_BASE_ / seg_path_
-    path_ = base_ / meta_tag / rel_path_
-
-    paths = {
-        'base_': str(base_),
-        'rel_path_': str(rel_path_),
-        'path_': str(path_),
-        # 'orig_path_': str(orig_path_),
-        # 'full_orig_path_': str(full_orig_path),
-        # 'norm_path_': str(norm_path_),
-        # 'full_norm_path_': str(full_norm_path_),
-        # 'seg_path_': str(seg_path_),
-        # 'full_seg_path_': str(full_seg_path_)
-    }
-    
-    orig_paths = {
-        'base_': str(ORIG_DB_BASE_),
-        'rel_path_': str(img_.relative_to(ORIG_DB_BASE_)),
-        'path_': str(img_),
-    }
+    path_ = base_ / new_img_tag/ eye_id / new_filename_
     img=Image.open(img_)
     w,h = img.size
     img_specs = {
         'ext': ext,
-        # get image width from image properties
         'width': w,
         'height': h,
-        'res':f'{w}x{h}'
     }
-
-    doc = {
-        'ds_id': ds_id,
-        'person_id': str(person_id),
-        'eye_id': eye_id, 
-        'sample_id': str(sample_id),
-        'person_sample_id': str(person_sample_id),
-        'image_id': str(new_filename_.stem),
-        'file_name': str(new_filename_),
-        'session_id': str(session_id),
-        # 'status': status,
-        'eye': eye,
-        'folder_tags': folder_tags,
+    doc[new_img_tag] = {
         'img_specs': img_specs,
-        'paths': paths,
-        'orig_paths': orig_paths,
-        'injested_at': datetime.now()
+        'orig_rel_path': str(img_.relative_to(ORIG_DB_BASE_)),
+        'injested_at': injested_at
     }
+    # if new_img_tag not in doc['img_tags']:
+    try:
+        if new_img_tag not in doc['img_tags']:
+            doc['img_tags'].append(new_img_tag)
+    except KeyError:
+        doc['img_tags'] = ['orig',new_img_tag]
+
+    # rename dic key
+    doc['sample_id_person'] = doc.pop('person_sample_id')  # rename person_sample_id to sample_id_person
+    
+    # remove key file_name from doc
+    doc.pop('file_name')
+    doc.pop('img_specs')
+    doc.pop('paths')
+    doc.pop('orig_paths')
+    # doc = {
+    #     'ds_id': ds_id,
+    #     'person_id': str(person_id),
+    #     'eye_id': eye_id, 
+    #     'sample_id': str(sample_id),
+    #     'person_sample_id': str(person_sample_id),
+    #     'image_id': str(new_filename_.stem),
+    #     'file_name': str(new_filename_),
+    #     'session_id': str(session_id),
+    #     # 'status': status,
+    #     'eye': eye,
+    #     'folder_tags': folder_tags,
+    #     'img_specs': img_specs,
+    #     'paths': paths,
+    #     'orig_paths': orig_paths,
+    #     'injested_at': datetime.now()
+    # }
     docs.append(doc)
-    # db.insert(doc)
+    # db.update(doc)
     fm.copy_file(img_, path_)
 
-db.insert(docs)
+# db.insert(docs)
 db.close()
+#%%
+with IrisDB(ds_id='IITD_v2') as db:
+    db.insert(docs)
 
+#%%
+
+from PIL import Image
+with IrisDB(ds_id='IITD_v2') as db1:
+    norm_img_set = set(i['image_id'] for i in db1.find({},{'_id':0,'image_id':1}))
+#%%
+docs_to_upload=[]
+with IrisDB(ds_id=ds_id) as db:
+    # find all images not in norm_img_set
+    docs=db.find({'image_id': {'$nin': list(norm_img_set)}})
+    for doc in docs:
+        doc['sample_id_person'] = doc.pop('person_sample_id')  # rename person_sample_id to sample_id_person
+        doc['img_tag']=['orig']
+        doc['orig']={
+            'img_specs': doc.pop('img_specs'),
+            'orig_rel_path': doc['orig_paths']['rel_path_'],
+            'injested_at': doc['injested_at']
+        }
+        doc['orig']['img_specs'].pop('res')
+        doc.pop('file_name')
+        doc.pop('paths')
+        doc.pop('orig_paths')
+        docs_to_upload.append(doc)
+    print(f"Number of new images to be inserted: {len(docs_to_upload)}")
+    with IrisDB(ds_id='IITD_v2') as db1:
+        res=db1.insert(docs_to_upload)
+        print(f"Inserted {len(docs_to_upload)} new images to IITD_v2",res)
+
+# db.insert(docs)
 
 # %%

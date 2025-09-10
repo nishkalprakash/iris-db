@@ -745,8 +745,8 @@ META = [
         'notes':str, # any notes
         'periocular':bool, # True/False
     },
-    'tags':list, # list of tags eg: ['orig', 'norm_def']
-    '{tag}':{
+    'img_tags':list, # list of tags eg: ['orig', 'norm_def']
+    '{img_tag}':{
         'info':str, # eg: 'original images'
         'num_images':int, # total number of images
         'num_people':int, # total number of people
@@ -769,7 +769,16 @@ META = [
             'width':int, # eg: 320
             'height':int # eg: 240
         },
-        'orig_base_':str # path to original database for this tag
+        'orig_base_path':str # path to original database for this tag
+    },
+    'fv_tags':list, # list of feature vector tags eg: ['iris_code', 'deep_fv']
+    '{fv_tag}':{
+        'info':str, # eg: 'Iris code using Daugman's method'
+        'git':str, # eg: link to github code for extraction
+        'doc':str, # eg: link to documentation
+        'dim':int, # eg: 2048 (dimension of the feature vector) (may be different for each file)
+        'type':str, # eg: 'binary' or 'float'
+        'notes':str # any notes
     },
     # 'base_':str, # Inherited:<f"{db_base}/{ds_id}"> -> path to the database in the iris_db folder
 },
@@ -805,7 +814,7 @@ DS = {
     'eye': str, # eg: 'L' or 'R'
     'eye_id': str, # indexed, eg: '1_L' (f'{person_id}_{eye}')
     'sample_id': str, # eg: '1' (sample number for this eye)
-    'person_sample_id': str, # eg: '1' (f'{sample_id}*{eye_count}+{eye_index}')
+    'sample_id_person': str, # eg: '1' (f'{sample_id}*{eye_count}+{eye_index}')
     'session_id': str, # eg: '1' (session number)
     'image_id': str, # indexed(unique), eg: '1_L_1' (f'{eye_id}_{sample_id}')
     'img_tags': list, # list of tags eg: ['orig', 'norm_def']
@@ -815,7 +824,8 @@ DS = {
             # 'width':int, # eg: 320
             # 'height':int # eg: 240
         # }
-        'orig_path':str, # path to original image 
+        'orig_rel_path':str, # path to original image,
+        'injested_at':str, # ISO timestamp of insertion
     },
     'fv_tags': list, # list of feature vector tags eg: ['iris_code', 'deep_fv']
     # store features here if needed

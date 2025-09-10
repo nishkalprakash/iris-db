@@ -291,7 +291,7 @@ class IrisDB():
             "num_samples_per_eye_count": self.get_num_samples_per_eye_count(tag),
             "num_sessions": self.find({}).distinct('session_id'),
             'img_specs': img['img_specs'],
-            'orig_base_': str(orig_db_base) if orig_db_base is not None else img['orig_paths']['base_'],
+            'orig_base_path': str(orig_db_base) if orig_db_base is not None else img['orig_paths']['base_'],
         }
         return data
 
@@ -495,6 +495,47 @@ class IrisMeta(IrisDB):
             lg.error(f"Error deleting metadata for dataset ID '{ds_id}': {e}")
             return False
     
+    # @staticmethod
+    # def get_def_img_tag_data():
+    #     tag_data = {
+    #         "info": "",
+    #         # "num_images": 0,
+    #         # "num_people": 0,
+    #         # "num_eyes": 0,
+    #         # "num_eyes_per_person": {},
+    #         # "num_eyes_per_person_count": {},
+    #         # "num_samples_per_eye": {},
+    #         # "num_samples_per_eye_count": {},
+    #         # "num_sessions": [],
+    #         # "img_specs": {},
+    #         "orig_base_path": ""
+    #     }
+    #     return tag_data
+
+    def insert_new_img_tag(self,tag:str,tag_data:dict, ds_id:str=None):
+        """Insert a new tag into the metadata for a given dataset ID. 
+        Eg: 'norm_def'
+        """
+        if ds_id is None:
+            ds_id = self.ds_id
+        if not self.find_ds(ds_id):
+            lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
+            return False
+        metadata = self.get_metadata(ds_id)
+        if 'img_tags' not in metadata:
+            metadata['img_tags'] = []
+        if tag in metadata['img_tags']:
+            lg.error(f"Tag '{tag}' already exists in dataset ID '{ds_id}'.")
+            return False
+        metadata['img_tags'].append(tag)
+        metadata[tag] = tag_data
+        try:
+            self.update_metadata(metadata)
+            lg.info(f"Tag '{tag}' inserted into metadata for dataset ID '{ds_id}'.")
+            return True
+        except Exception as e:
+            lg.error(f"Error inserting tag '{tag}' into metadata for dataset ID '{ds_id}': {e}")
+            return False
          
 class Iris:
     """
