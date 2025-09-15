@@ -769,6 +769,8 @@ META = [
             'width':int, # eg: 320
             'height':int # eg: 240
         },
+        'doc':str, # eg: link to documentation,
+        'git':str, # eg: link to github code for extraction,
         'orig_base_path':str # path to original database for this tag
     },
     'fv_tags':list, # list of feature vector tags eg: ['iris_code', 'deep_fv']

@@ -313,3 +313,17 @@ with IrisDB(ds_id=ds_id) as db:
 # db.insert(docs)
 
 # %%
+from biolab import IrisDB
+with IrisDB(ds_id='IITD_v1') as db:
+    print(f"Number of images in IITD_v1: {db.coll.count_documents({})}")
+# %%
+from biolab import IrisDB, IrisMeta
+ds_id = 'IITD_v1'
+db=IrisDB(ds_id)
+meta= IrisMeta()
+meta_doc = meta.get_metadata(ds_id)
+print(meta_doc)
+#%%
+tags=meta_doc['img_tags']
+print(f"Image tags in {ds_id}: {tags}")
+irides = db.find({}, {'_id': 0, 'image_id': 1, 'orig':1, 'norm_def':1})

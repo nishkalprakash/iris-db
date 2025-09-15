@@ -427,12 +427,14 @@ class IrisMeta(IrisDB):
     #     lg.debug("Returned meta collection.")
     #     return coll
 
-    def get_metadata(self, ds_id: str) -> dict:
+    def get_metadata(self, ds_id: str, proj=None) -> dict:
         """Retrieve metadata for a given dataset ID."""
         if not self.find_ds(ds_id):
             lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
             return None
-        metadata = self.find_one({"ds_id": ds_id}, {'_id': 0})
+        if proj is None:
+            proj = {"_id": 0}  # Exclude MongoDB internal ID by default
+        metadata = self.find_one({"ds_id": ds_id}, proj=proj)
         if metadata:
             lg.info(f"Metadata retrieved for dataset ID '{ds_id}'.")
         else:
@@ -512,23 +514,58 @@ class IrisMeta(IrisDB):
     #     }
     #     return tag_data
 
-    def insert_new_img_tag(self,tag:str,tag_data:dict, ds_id:str=None):
+    # def insert_new_img_tag(self,tag:str,tag_data:dict, ds_id:str=None):
+    #     """Insert a new image tag into the metadata for a given dataset ID. 
+    #     Eg: 'fv_tags'
+    #     """
+    #     if ds_id is None:
+    #         ds_id = self.ds_id
+    #     if not self.find_ds(ds_id):
+    #         lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
+    #         return False
+    #     metadata = self.get_metadata(ds_id)
+    #     if 'fv_tags' not in metadata:
+    #         metadata['fv_tags'] = []
+    #     if tag in metadata['fv_tags']:
+    #         lg.error(f"Tag '{tag}' already exists in dataset ID '{ds_id}'.")
+    #         return False
+    #     metadata['fv_tags'].append(tag)
+    #     metadata[tag] = tag_data
+    #     try:
+    #         self.update_metadata(metadata)
+    #         lg.info(f"Tag '{tag}' inserted into metadata for dataset ID '{ds_id}'.")
+    #         return True
+    #     except Exception as e:
+    #         lg.error(f"Error inserting tag '{tag}' into metadata for dataset ID '{ds_id}': {e}")
+    #         return False
+
+    def insert_new_img_tag(self,tag:str,tag_data:dict,ds_id:str=None):
         """Insert a new tag into the metadata for a given dataset ID. 
         Eg: 'norm_def'
         """
         if ds_id is None:
-            ds_id = self.ds_id
+            ds_id = tag_data.get('ds_id', None)
+            if ds_id is None:
+                lg.error("Dataset ID must be provided either as a parameter or within tag_data.")
+                return False
         if not self.find_ds(ds_id):
             lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
             return False
-        metadata = self.get_metadata(ds_id)
+        metadata = self.get_metadata(ds_id, proj={"ds_id":1, "img_tags": 1, tag: 1, "_id": 0})
         if 'img_tags' not in metadata:
             metadata['img_tags'] = []
         if tag in metadata['img_tags']:
-            lg.error(f"Tag '{tag}' already exists in dataset ID '{ds_id}'.")
-            return False
-        metadata['img_tags'].append(tag)
-        metadata[tag] = tag_data
+            lg.debug(f"Tag '{tag}' already exists in dataset ID '{ds_id}'.")
+            # metadata['img_tags']=
+            # return False
+        else:
+            metadata['img_tags'].append(tag)
+        if tag in metadata:
+            lg.debug(f"Tag '{tag}' already exists in dataset ID '{ds_id}', updating its data.")
+            # return False
+            metadata[tag].update(tag_data[tag])
+        else:
+            metadata[tag] = tag_data[tag]
         try:
             self.update_metadata(metadata)
             lg.info(f"Tag '{tag}' inserted into metadata for dataset ID '{ds_id}'.")
