@@ -35,13 +35,11 @@ class LoggerManager:
             cls._logger.setLevel(level)
         return cls._logger
 
-lg = LoggerManager.get_logger(__name__)
-lg.setLevel(logging.ERROR)
 import shutil
 class FileManager:
     """Singleton File Manager for consistent file operations."""
     _instance = None
-    lg = LoggerManager.get_logger(__name__,"ERROR")
+    lg = LoggerManager.get_logger(__name__,"INFO")
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(FileManager, cls).__new__(cls)

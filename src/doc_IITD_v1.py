@@ -1,0 +1,15 @@
+doc = {
+    "_id": "68b9451e212ad322ada3322b",
+    "ds_id": "IITD_v1",
+    "person_id": "1",
+    "eye_id": "1_L",
+    "sample_id": "1",
+    "image_id": "1_L_1",
+    "session_id": "1",
+    "eye": "L",
+    "img_tags": ["orig", "norm_def", "mask_irisseg"],
+    "norm_def": {"orig_rel_path": "001_1.bmp"},
+    "sample_id_person": "1",
+    "mask_irisseg": {"orig_rel_path": "OperatorA_001-A_01.tiff"},
+    "orig": {"old_rel_": "001/01_L.bmp"},
+}

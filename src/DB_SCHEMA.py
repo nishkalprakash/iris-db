@@ -1,4 +1,4 @@
-""" SAMPLE META Doc
+"""SAMPLE META Doc
 {
     "_id" : ObjectId("68b9960a41c48bfb65fb9041"),
     "ds_id" : "IITD_v1",
@@ -728,63 +728,55 @@
     "injested_at" : ISODate("2025-09-08T14:17:58.701+0000")
 }
 """
+
 DB = {
-    'db_base_': str, # path to the database in the iris_db folder, eg: /home/<user>/datasets/iris_db/
-    'db_name': str, # eg: 'iris_db'
-    'meta_coll': str, # eg: 'meta'
+    "db_base_": str,  # path to the database in the iris_db folder, eg: /home/<user>/datasets/iris_db/
+    "db_name": str,  # eg: 'iris_db'
+    "meta_coll": str,  # eg: 'meta'
 }
 META = [
-{
-    'ds_id':str, # indexed(unique), eg: 'iitd_v1'
-    'ds_info':{
-        'name':str, # eg: 'IITD.v1'
-        'desc':str, # long description
-        'capture_device':str, # eg: 'JIRIS, JPC1000, digital CMOS camera'
-        'environment':str, # eg: 'indoor'
-        'type':str, # eg: 'NIR'
-        'notes':str, # any notes
-        'periocular':bool, # True/False
+    {
+        "ds_id": str,  # indexed(unique), eg: 'iitd_v1'
+        "doc": str,  # gdoc link
+        "img_tags": list,  # list of tags eg: ['orig', 'norm_def']
+        "injested_at": str,  # ISO timestamp of insertion
+        "{img_tag}": {
+            "info": str,  # eg: 'original images'
+            "stats": {
+                "num_images": int,  # total number of images
+                "num_people": int,  # total number of people
+                "num_eyes": int,  # total number of eyes
+                "num_eyes_per_person": {
+                    "{eye_count}": list,  # {'{eye_count}':list[{person_id},...]}
+                },
+                "num_eyes_per_person_count": {
+                    "{eye_count}": int,  # {'{eye_count}': Count of people with {eye_count} eyes}
+                },
+                "num_samples_per_eye": {
+                    "{sample_count}": list,  # {'{sample_count}':list[{eye_id},...]}
+                },
+                "num_samples_per_eye_count": {
+                    "{sample_count}": int,  # {'{sample_count}': Count of eyes with {sample_count} samples}
+                },
+                "num_sessions": list,  # list of session ids eg: ['1', '2']
+            },
+            "img_specs": {
+                "ext": str,  # eg: '.bmp'
+                "width": int,  # eg: 320
+                "height": int,  # eg: 240
+            },
+            "git": str,  # OPTIONAL eg: link to github code for extraction
+            "old_base_": str,  # path to original database for this tag
+        },
+        "fv_tags": list,  # list of feature vector tags eg: ['iris_code', 'deep_fv']
+        "{fv_tag}": {
+            "info": str,  # eg: 'Iris code using Daugman's method'
+            "dim": int,  # eg: 2048 (dimension of the feature vector) (may be different for each file)
+            "type": str,  # eg: 'binary' or 'float'
+            "notes": str,  # any notes
+        },
+        # 'base_':str, # Inherited:<f"{db_base}/{ds_id}"> -> path to the database in the iris_db folder
     },
-    'img_tags':list, # list of tags eg: ['orig', 'norm_def']
-    '{img_tag}':{
-        'info':str, # eg: 'original images'
-        'num_images':int, # total number of images
-        'num_people':int, # total number of people
-        'num_eyes':int, # total number of eyes
-        'num_eyes_per_person':{
-            '{eye_count}':list, # {'{eye_count}':list[{person_id},...]}
-        },
-        'num_eyes_per_person_count':{
-            '{eye_count}':int, # {'{eye_count}': Count of people with {eye_count} eyes}
-        },
-        'num_samples_per_eye':{
-            '{sample_count}':list, # {'{sample_count}':list[{eye_id},...]}
-        },
-        'num_samples_per_eye_count':{
-            '{sample_count}':int, # {'{sample_count}': Count of eyes with {sample_count} samples}
-        },
-        'num_sessions':list, # list of session ids eg: ['1', '2']
-        'img_specs':{
-            'ext':str, # eg: '.bmp'
-            'width':int, # eg: 320
-            'height':int # eg: 240
-        },
-        'doc':str, # eg: link to documentation,
-        'git':str, # eg: link to github code for extraction,
-        'orig_base_path':str # path to original database for this tag
-    },
-    'fv_tags':list, # list of feature vector tags eg: ['iris_code', 'deep_fv']
-    '{fv_tag}':{
-        'info':str, # eg: 'Iris code using Daugman's method'
-        'git':str, # eg: link to github code for extraction
-        'doc':str, # eg: link to documentation
-        'dim':int, # eg: 2048 (dimension of the feature vector) (may be different for each file)
-        'type':str, # eg: 'binary' or 'float'
-        'notes':str # any notes
-    },
-    # 'base_':str, # Inherited:<f"{db_base}/{ds_id}"> -> path to the database in the iris_db folder
-},
-
 ]
 
 """ DS sample doc
@@ -810,28 +802,28 @@ META = [
     "injested_at" : ISODate("2025-09-04T13:21:58.424+0000")
 }
 """
-DS = {
-    'ds_id': str, # eg: 'iitd_v1'
-    'person_id': str, # indexed, eg: '1'
-    'eye': str, # eg: 'L' or 'R'
-    'eye_id': str, # indexed, eg: '1_L' (f'{person_id}_{eye}')
-    'sample_id': str, # eg: '1' (sample number for this eye)
-    'sample_id_person': str, # eg: '1' (f'{sample_id}*{eye_count}+{eye_index}')
-    'session_id': str, # eg: '1' (session number)
-    'image_id': str, # indexed(unique), eg: '1_L_1' (f'{eye_id}_{sample_id}')
-    'img_tags': list, # list of tags eg: ['orig', 'norm_def']
-    '{img_tag}':{
-        # 'img_specs':{  # may be inherited from meta data if constant in all images
+DS = [
+    {
+        "ds_id": str,  # eg: 'iitd_v1'
+        "person_id": str,  # indexed, eg: '1'
+        "eye": str,  # eg: 'L' or 'R'
+        "eye_id": str,  # indexed, eg: '1_L' (f'{person_id}_{eye}')
+        "sample_id": str,  # eg: '1' (sample number for this eye)
+        "sample_id_person": str,  # eg: '1' (f'{sample_id}*{eye_count}+{eye_index}')
+        "session_id": str,  # eg: '1' (session number)
+        "image_id": str,  # indexed(unique), eg: '1_L_1' (f'{eye_id}_{sample_id}')
+        "img_tags": list,  # list of tags eg: ['orig', 'norm_def']
+        "{img_tag}": {
+            # 'img_specs':{  # may be inherited from meta data if constant in all images
             # 'ext':str, # eg: '.bmp'
             # 'width':int, # eg: 320
             # 'height':int # eg: 240
-        # }
-        'orig_rel_path':str, # path to original image,
-        'injested_at':str, # ISO timestamp of insertion
-    },
-    'fv_tags': list, # list of feature vector tags eg: ['iris_code', 'deep_fv']
-    # store features here if needed
-    '{fv_tag}':{
-        'fv':list # eg: [0.1, 0.2, ...]
-    },
-}
+            # }
+            "orig_rel_path": str,  # path to original image,
+            "injested_at": str,  # ISO timestamp of insertion
+        },
+        "fv_tags": list,  # list of feature vector tags eg: ['iris_code', 'deep_fv']
+        # store features here if needed
+        "{fv_tag}": {"fv": list},  # eg: [0.1, 0.2, ...]
+    }
+]

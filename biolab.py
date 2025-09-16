@@ -11,11 +11,25 @@ from difflib import get_close_matches
 
 # from time import sleep
 # logger = LoggerManager.get_logger(name=Path(__file__).stem)
-lg = LM.get_logger(__name__,level="DEBUG")
-fm=FM()
+# fm=FM()
 # lg = lm.get_logger(__name__,level="INFO")
 # set log level to info
-# lg.setLevel(logging.DEBUG)
+# self.lg.setLevel(logging.DEBUG)
+from datetime import datetime, timezone
+
+# Create the function
+def _iso_date(date_string=None):
+    if date_string is None:
+        return datetime.now(timezone.utc)
+    
+    if date_string.endswith('Z'):
+        date_string = date_string[:-1] + '+00:00'
+    
+    return datetime.fromisoformat(date_string)
+
+# Assign to ISODate to match MongoDB shell syntax
+ISODate = _iso_date
+
 
 class IrisDB():
     """
@@ -41,13 +55,17 @@ class IrisDB():
         self.meta_coll_name = self.META_COLL_NAME if meta_coll_name is None else meta_coll_name
         # self.db_coll = DB_COLL if db_coll is None else db_coll
         ## get user:passwd from mongo_creds.txt file
-        user,passwd = fm.read_creds()
+        self.lg = LM.get_logger(__name__,level="INFO")
+        self.fm = FM()
+        user,passwd = self.fm.read_creds()
         self._mongo_admin_user = user
         self._mongo_admin_password = passwd
         self.closing = False
         if ds_id is not None:
             self.connect(ds_id)
-        # fm.ensure_exists(self.DB_BASE_)
+
+        
+        # self.fm.ensure_exists(self.DB_BASE_)
         # set it have the same properties as Collection class
         
     @property
@@ -57,14 +75,14 @@ class IrisDB():
         if self.closing:
             delattr(self, 'mongo_client')
             return None
-        lg.debug("MongoDB client is not initialized. Creating client...")
+        self.lg.debug("MongoDB client is not initialized. Creating client...")
         mc = MongoClient(
             self.db_ip,
             username=self._mongo_admin_user,
             password=self._mongo_admin_password,
             authSource="admin"
         )
-        lg.debug("MongoDB client created successfully.")
+        self.lg.debug("MongoDB client created successfully.")
         return mc
     
 
@@ -75,10 +93,10 @@ class IrisDB():
         if self.closing:
             delattr(self, 'mongo_db')
             return None
-        lg.debug("Establishing MongoDB database connection...")
+        self.lg.debug("Establishing MongoDB database connection...")
         # This will automatically trigger the mongo_client property if needed
         conn = self.mongo_client[self.mongo_db_name]
-        lg.debug("MongoDB connection established successfully.")
+        self.lg.debug("MongoDB connection established successfully.")
         return conn
     
 
@@ -87,16 +105,16 @@ class IrisDB():
     @lru_cache(maxsize=None) # Caches the result after the first call
     def avail_ds(self) -> set:
         """Lazily creates and returns the set of available iris_db from meta coll using the mongo client."""
-        lg.debug("Connecting to meta db to find avail ds")
+        self.lg.debug("Connecting to meta db to find avail ds")
         # This will automatically trigger the mongo_client property if needed
         try:
             avail_ds = set(self.mongo_db.list_collection_names())
         except Exception as e:
-            lg.error(f"Error fetching available datasets: {e}")
+            self.lg.error(f"Error fetching available datasets: {e}")
             raise e
         # avail_ds.add(self.meta_coll_name)
         # print(avail_ds)
-        lg.debug(f"Fetched List of avail databases -> {avail_ds}")
+        self.lg.debug(f"Fetched List of avail databases -> {avail_ds}")
         return avail_ds
 
     def get_avail_ds(self) -> set:
@@ -112,10 +130,10 @@ class IrisDB():
     #     if self.closing:
     #         delattr(self, 'coll')
     #         return None
-    #     lg.debug("Establishing MongoDB collection connection...")
+    #     self.lg.debug("Establishing MongoDB collection connection...")
     #     # This will automatically trigger the mongo_db property if needed
     #     coll = self.mongo_db[self.ds_name]
-    #     lg.debug("MongoDB collection connection established successfully.")
+    #     self.lg.debug("MongoDB collection connection established successfully.")
     #     return coll
 
     def find_ds(self, ds_id, avail_ds=None, acc=0.4, count=1) -> str|set:
@@ -133,14 +151,14 @@ class IrisDB():
                 res = mapping[matches[0]]
             msg = f"Found matches for {ds_id}: {res}"
             print(msg)
-            lg.debug(msg)
+            self.lg.debug(msg)
             return res
         return None
 
     # @lru_cache(maxsize=None) # Caches the result after the first call
     # def set_meta_primary(self):
     #     """Get the meta collection"""
-    #     lg.debug("Accessing meta collection...")
+    #     self.lg.debug("Accessing meta collection...")
     #     self.ds_id = self.meta_coll_name
     #     self.coll = self.meta_coll
     #     return self.meta_coll
@@ -148,7 +166,7 @@ class IrisDB():
 
     # def meta_connect(self):
     #     """Connect to the meta collection"""
-    #     lg.info("Connecting to meta collection...")
+    #     self.lg.info("Connecting to meta collection...")
     #     return self.meta_coll
 
     def connect(self, ds_id, acc=0.4) -> Collection:
@@ -159,17 +177,17 @@ class IrisDB():
         # if ds_id == self.meta_coll_name:
         #     self.ds_id = self.meta_coll_name
         #     # self.coll = self.get_meta_coll()
-        #     lg.info(f"Connecting to {ds_id} Collection")
+        #     self.lg.info(f"Connecting to {ds_id} Collection")
         #     return self.meta_coll
         
         avail_ds = self.avail_ds
         if (closest_match := self.find_ds(ds_id=ds_id, avail_ds=avail_ds, acc=acc)):
             self.ds_id = closest_match
-            lg.info(f"Connecting to {self.ds_id} Collection")
+            self.lg.info(f"Connecting to {self.ds_id} Collection")
             # self.ds_prefix=Path(DS_PREFIX)
             # self.ds_path=self.ds_prefix/self.ds_id
         else:
-            lg.error(f"{ds_id} Collection Not found in available datasets. List: {avail_ds}")
+            self.lg.error(f"{ds_id} Collection Not found in available datasets. List: {avail_ds}")
             return None
         self.coll = self.mongo_db[self.ds_id]
         return self.coll
@@ -192,7 +210,7 @@ class IrisDB():
         if coll is None:
             coll = self.coll
         res=coll.update_one({key: doc[key]}, {'$set': doc}, upsert=False)
-        lg.info(f"Updated document in {self.ds_id} collection.")
+        self.lg.info(f"Updated document in {self.ds_id} collection.")
         return res
     
     def insert(self, docs, coll = None):
@@ -205,16 +223,16 @@ class IrisDB():
                 # ignore if duplicate key error
                 res = coll.insert_many(docs, ordered=False)
         except Exception as e:
-            lg.error(f"Error inserting document into {self.ds_id} collection, error: {e}")
+            self.lg.error(f"Error inserting document into {self.ds_id} collection, error: {e}")
             res = None
-        lg.info(f"Inserted document(s) into {self.ds_id} collection.")
+        self.lg.info(f"Inserted document(s) into {self.ds_id} collection.")
         return res
 
     def find(self, query, proj=None, collection=None):
         """Get data from the connected collection"""
         if collection is None:
             if not hasattr(self, 'coll'):
-                lg.error("No collection connected. Please call connect() first.")
+                self.lg.error("No collection connected. Please call connect() first.")
                 return None
             collection = self.coll
 
@@ -224,7 +242,7 @@ class IrisDB():
         """Get a single document from the connected collection"""
         if collection is None:
             if not hasattr(self, 'coll'):
-                lg.error("No collection connected. Please call connect() first.")
+                self.lg.error("No collection connected. Please call connect() first.")
                 return None
             collection = self.coll
 
@@ -234,54 +252,59 @@ class IrisDB():
         
     def get_num_eyes_per_person(self,tag='orig'):
         num_eyes_per_person = {}
-        for person in self.find({}).distinct('person_id'):
-            n = str(len(list(self.find({'person_id': person}).distinct('eye_id'))))
+        for person in self.find({'img_tags': tag}).distinct('person_id'):
+            n = str(len(list(self.find({'person_id': person,'img_tags': tag}).distinct('eye_id'))))
             try:
                 num_eyes_per_person[n].append(person)
             except KeyError:
                 num_eyes_per_person[n] = [person]
-        lg.debug(f"DS_ID: {self.ds_id} \n num_eyes_per_person: {num_eyes_per_person}")
+        self.lg.debug(f"DS_ID: {self.ds_id} \n num_eyes_per_person: {num_eyes_per_person}")
         return num_eyes_per_person
-
-    def get_num_eyes_per_person_count(self,tag='orig'):
-        num_eyes_per_person = self.get_num_eyes_per_person(tag)
-        lg.debug(f"DS_ID: {self.ds_id} \n num_eyes_per_person_count: {num_eyes_per_person}")
-        return {k: len(v) for k, v in num_eyes_per_person.items()}
 
     def get_num_samples_per_eye(self,tag='orig'):
         num_samples_per_eye = {}
-        for eye in self.find({}).distinct('eye_id'):
-            n = str(len(list(self.find({'eye_id': eye}))))
+        for eye in self.find({'img_tags': tag}).distinct('eye_id'):
+            n = str(len(list(self.find({'eye_id': eye,'img_tags': tag,}))))
             try:
                 num_samples_per_eye[n].append(eye)
             except KeyError:
                 num_samples_per_eye[n] = [eye]
-        lg.debug(f"DS_ID: {self.ds_id} \n num_samples_per_eye: {num_samples_per_eye}")
+        self.lg.debug(f"DS_ID: {self.ds_id} \n num_samples_per_eye: {num_samples_per_eye}")
         return num_samples_per_eye
+
+
+    def get_num_eyes_per_person_count(self,tag='orig'):
+        num_eyes_per_person = self.get_num_eyes_per_person(tag)
+        count = {k: len(v) for k, v in num_eyes_per_person.items()}
+        self.lg.info(f"DS_ID: {self.ds_id} \n num_eyes_per_person_count: {count}")
+        return count
 
     def get_num_samples_per_eye_count(self,tag='orig'):
         num_samples_per_eye = self.get_num_samples_per_eye(tag)
-        lg.debug(f"DS_ID: {self.ds_id} \n num_samples_per_eye_count: {num_samples_per_eye}")
-        return {k: len(v) for k, v in num_samples_per_eye.items()}
+        count = {k: len(v) for k, v in num_samples_per_eye.items()}
+        self.lg.info(f"DS_ID: {self.ds_id} \n num_samples_per_eye_count: {count}")
+        return count
 
     def get_num_eyes(self,tag='orig'):
-        lg.debug(f"DS_ID: {self.ds_id} \n num_eyes: {len(self.find({}).distinct('eye_id'))}")
-        return len(self.find({}).distinct('eye_id'))
+        count = len(self.find({'img_tags': tag}).distinct('eye_id'))
+        self.lg.info(f"DS_ID: {self.ds_id} \n num_eyes: {count}")
+        return count
 
     def get_num_people(self,tag='orig'):
-        lg.debug(f"DS_ID: {self.ds_id} \n num_people: {len(self.find({}).distinct('person_id'))}")
-        return len(self.find({}).distinct('person_id'))
+        count = len(self.find({'img_tags': tag}).distinct('person_id'))
+        self.lg.info(f"DS_ID: {self.ds_id} \n num_people: {count}")
+        return count
 
     def get_num_images(self,tag='orig'):
-        count=self.coll.count_documents({})
-        lg.debug(f"DS_ID: {self.ds_id} \n num_images: {count}")
+        count=self.coll.count_documents({'img_tags': tag})
+        self.lg.info(f"DS_ID: {self.ds_id} \n num_images: {count}")
         return count
 
 
     def get_tag_data(self, tag='orig', orig_db_base=None):
-        img = self.find_one({}, {'_id': 0, 'orig_paths': 1, 'img_specs': 1})
+        # img = self.find_one({}, {'_id': 0, })
         data = {
-            "info": "original images",
+            # "info": "original images",
             "num_images": self.get_num_images(tag),
             "num_people": self.get_num_people(tag),
             "num_eyes": self.get_num_eyes(tag),
@@ -289,9 +312,9 @@ class IrisDB():
             "num_eyes_per_person_count": self.get_num_eyes_per_person_count(tag), 
             "num_samples_per_eye": self.get_num_samples_per_eye(tag),
             "num_samples_per_eye_count": self.get_num_samples_per_eye_count(tag),
-            "num_sessions": self.find({}).distinct('session_id'),
-            'img_specs': img['img_specs'],
-            'orig_base_path': str(orig_db_base) if orig_db_base is not None else img['orig_paths']['base_'],
+            "num_sessions": self.find({'img_tags': tag,}).distinct('session_id'),
+            # 'img_specs': img['img_specs'],
+            # 'orig_base_path': str(orig_db_base) if orig_db_base is not None else img['orig_paths']['base_'],
         }
         return data
 
@@ -303,7 +326,7 @@ class IrisDB():
     def __getitem__(self, coll_name):
         """Get a MongoDB collection by name"""
         # if not hasattr(self, 'mongo_conn'):
-            # lg.error("No MongoDB connection established.")
+            # self.lg.error("No MongoDB connection established.")
             # return None
         return self.get_coll(coll_name)
 
@@ -311,7 +334,7 @@ class IrisDB():
     #     """Get data from the connected collection"""
     #     if collection is None:
     #         if not hasattr(self, 'coll'):
-    #             lg.error("No collection connected. Please call connect() first.")
+    #             self.lg.error("No collection connected. Please call connect() first.")
     #             return None
     #         collection = self.coll
 
@@ -320,7 +343,7 @@ class IrisDB():
     # def update_one(self, doc, key=None, collection=None):
     #     """Update a single document in the connected collection"""
     #     if not hasattr(self, 'coll'):
-    #         lg.error("No collection connected. Please call connect() first.")
+    #         self.lg.error("No collection connected. Please call connect() first.")
     #         return None
     #     if collection is None:
     #         collection = self.coll
@@ -335,13 +358,13 @@ class IrisDB():
     #         collection.update_one({key: doc[key]}, {'$set': doc}, upsert=True)
     #     else:
     #         raise ValueError(f"Key '{key}' not found in document.")
-    #     lg.info(f"Updated document in {self.ds_name} collection.")
+    #     self.lg.info(f"Updated document in {self.ds_name} collection.")
     #     return True
     
     # def update_many(self, docs, key=None):
     #     """Update data in the connected collection"""
     #     if not hasattr(self, 'coll'):
-    #         lg.error("No collection connected. Please call connect() first.")
+    #         self.lg.error("No collection connected. Please call connect() first.")
     #         return None
     #     if isinstance(docs, dict):
     #         docs = [docs]
@@ -357,7 +380,7 @@ class IrisDB():
     #             self.coll.update_one({key: doc[key]}, {'$set': doc}, upsert=True)
     #         else:
     #             raise ValueError(f"Key '{key}' not found in document.")
-    #     lg.info(f"Updated {len(docs)} documents in {self.ds_name} collection.")
+    #     self.lg.info(f"Updated {len(docs)} documents in {self.ds_name} collection.")
     #     return True
 
 
@@ -365,21 +388,21 @@ class IrisDB():
     # def insert_one(self, doc):
     #     """Insert a single document into the connected collection"""
     #     if not hasattr(self, 'coll'):
-    #         lg.error("No collection connected. Please call connect() first.")
+    #         self.lg.error("No collection connected. Please call connect() first.")
     #         return None
     #     self.coll.insert_one(doc)
-    #     lg.info(f"Inserted document into {self.ds_name} collection.")
+    #     self.lg.info(f"Inserted document into {self.ds_name} collection.")
     #     return True
     def __enter__(self):
         """Called when entering the 'with' statement."""
-        lg.debug("Entering context...")
+        self.lg.debug("Entering context...")
         return self # Return the instance to be used in the 'with' block
     
     def __exit__(self,*args):
         """Called when exiting the 'with' statement."""
         # This method is always called, ensuring the connection is closed.
         self.close()
-        # lg.debug("MongoClient connection closed.")
+        # self.lg.debug("MongoClient connection closed.")
 
     def close(self):
         """Explicitly close the mongo client connection"""  
@@ -388,22 +411,22 @@ class IrisDB():
         try:
             self.closing = True
             if hasattr(self, 'mongo_client'):
-                lg.debug("checking for mongoclient")
+                self.lg.debug("checking for mongoclient")
                 self.mongo_client.close()
-                lg.info("MongoDB client connection closed successfully.")
+                self.lg.info("MongoDB client connection closed successfully.")
             else:
-                lg.debug("MongoDB client was not initialized; no connection to close.")
+                self.lg.debug("MongoDB client was not initialized; no connection to close.")
         except Exception as e:
-            lg.error(f"Error closing MongoDB client connection: {e}")
+            self.lg.error(f"Error closing MongoDB client connection: {e}")
     
     def __del__(self):
         try:
             if self.closing:
                 return
             self.close()
-            lg.debug("MongoDB connection closed successfully.")
+            self.lg.debug("MongoDB connection closed successfully.")
         except Exception as e:
-            lg.error(str(e))
+            self.lg.error(str(e))
 
 
 class IrisMeta(IrisDB):
@@ -424,77 +447,77 @@ class IrisMeta(IrisDB):
     # def meta_coll(self):
     #     """Lazily creates and returns the Meta collection using the client."""
     #     coll = self.db.mongo_db[self.meta_coll_name]
-    #     lg.debug("Returned meta collection.")
+    #     self.lg.debug("Returned meta collection.")
     #     return coll
 
     def get_metadata(self, ds_id: str, proj=None) -> dict:
         """Retrieve metadata for a given dataset ID."""
         if not self.find_ds(ds_id):
-            lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
+            self.lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
             return None
         if proj is None:
             proj = {"_id": 0}  # Exclude MongoDB internal ID by default
         metadata = self.find_one({"ds_id": ds_id}, proj=proj)
         if metadata:
-            lg.info(f"Metadata retrieved for dataset ID '{ds_id}'.")
+            self.lg.info(f"Metadata retrieved for dataset ID '{ds_id}'.")
         else:
-            lg.error(f"No metadata found for dataset ID '{ds_id}'.")
+            self.lg.error(f"No metadata found for dataset ID '{ds_id}'.")
         return metadata
     
     def update_metadata(self, metadata: dict) -> bool:
         """Update metadata for a given dataset ID."""
         if "ds_id" not in metadata:
-            lg.error("Metadata must contain 'ds_id' field for update.")
+            self.lg.error("Metadata must contain 'ds_id' field for update.")
             return False
         if not self.find_ds(metadata["ds_id"]):
-            lg.error(f"Dataset ID '{metadata['ds_id']}' not found in available datasets.")
+            self.lg.error(f"Dataset ID '{metadata['ds_id']}' not found in available datasets.")
             return False
         try:
             self.update(metadata)
-            lg.info(f"Metadata updated for dataset ID '{metadata['ds_id']}'.")
+            self.lg.info(f"Metadata updated for dataset ID '{metadata['ds_id']}'.")
             return True
         except Exception as e:
-            lg.error(f"Error updating metadata for dataset ID '{metadata['ds_id']}': {e}")
+            self.lg.error(f"Error updating metadata for dataset ID '{metadata['ds_id']}': {e}")
             return False
 
     def insert_metadata(self, metadata: dict) -> bool:
         """Insert new metadata for a dataset."""
         if "ds_id" not in metadata:
-            lg.error("Metadata must contain 'ds_id' field for insertion.")
+            self.lg.error("Metadata must contain 'ds_id' field for insertion.")
             return False
         if self.find_ds(metadata["ds_id"]):
-            lg.error(f"Dataset ID '{metadata['ds_id']}' already exists in available datasets.")
+            self.lg.error(f"Dataset ID '{metadata['ds_id']}' already exists in available datasets.")
             return False
         try:
             self.insert(metadata)
-            lg.info(f"Metadata inserted for dataset ID '{metadata['ds_id']}'.")
+            self.lg.info(f"Metadata inserted for dataset ID '{metadata['ds_id']}'.")
             return True
         except Exception as e:
-            lg.error(f"Error inserting metadata for dataset ID '{metadata['ds_id']}': {e}")
+            self.lg.error(f"Error inserting metadata for dataset ID '{metadata['ds_id']}': {e}")
             return False
 
     def list_datasets(self) -> list:
         """List all dataset IDs available in the metadata collection."""
         datasets = set(self.avail_ds - {self.meta_coll_name})
-        lg.info(f"Available datasets: {datasets}")
+        self.lg.info(f"Available datasets: {datasets}")
         return datasets
     get_datasets = get_ds = list_ds = get_avail_ds = list_datasets
     
     def delete_metadata(self, ds_id: str) -> bool:
         """Delete metadata for a given dataset ID."""
         if not self.find_ds(ds_id):
-            lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
+            self.lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
             return False
         try:
             result = self.coll.delete_one({"ds_id": ds_id})
             if result.deleted_count > 0:
-                lg.info(f"Metadata deleted for dataset ID '{ds_id}'.")
+                self.lg.info(f"Metadata deleted for dataset ID '{ds_id}'.")
                 return True
             else:
-                lg.error(f"No metadata found to delete for dataset ID '{ds_id}'.")
+                self.lg.error(f"No metadata found to delete for dataset ID '{ds_id}'.")
                 return False
         except Exception as e:
-            lg.error(f"Error deleting metadata for dataset ID '{ds_id}': {e}")
+            self.lg.error(f"Error deleting metadata for dataset ID '{ds_id}': {e}")
             return False
     
     # @staticmethod
@@ -521,22 +544,22 @@ class IrisMeta(IrisDB):
     #     if ds_id is None:
     #         ds_id = self.ds_id
     #     if not self.find_ds(ds_id):
-    #         lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
+    #         self.lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
     #         return False
     #     metadata = self.get_metadata(ds_id)
     #     if 'fv_tags' not in metadata:
     #         metadata['fv_tags'] = []
     #     if tag in metadata['fv_tags']:
-    #         lg.error(f"Tag '{tag}' already exists in dataset ID '{ds_id}'.")
+    #         self.lg.error(f"Tag '{tag}' already exists in dataset ID '{ds_id}'.")
     #         return False
     #     metadata['fv_tags'].append(tag)
     #     metadata[tag] = tag_data
     #     try:
     #         self.update_metadata(metadata)
-    #         lg.info(f"Tag '{tag}' inserted into metadata for dataset ID '{ds_id}'.")
+    #         self.lg.info(f"Tag '{tag}' inserted into metadata for dataset ID '{ds_id}'.")
     #         return True
     #     except Exception as e:
-    #         lg.error(f"Error inserting tag '{tag}' into metadata for dataset ID '{ds_id}': {e}")
+    #         self.lg.error(f"Error inserting tag '{tag}' into metadata for dataset ID '{ds_id}': {e}")
     #         return False
 
     def insert_new_img_tag(self,tag:str,tag_data:dict,ds_id:str=None):
@@ -546,32 +569,32 @@ class IrisMeta(IrisDB):
         if ds_id is None:
             ds_id = tag_data.get('ds_id', None)
             if ds_id is None:
-                lg.error("Dataset ID must be provided either as a parameter or within tag_data.")
+                self.lg.error("Dataset ID must be provided either as a parameter or within tag_data.")
                 return False
         if not self.find_ds(ds_id):
-            lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
+            self.lg.error(f"Dataset ID '{ds_id}' not found in available datasets.")
             return False
         metadata = self.get_metadata(ds_id, proj={"ds_id":1, "img_tags": 1, tag: 1, "_id": 0})
         if 'img_tags' not in metadata:
             metadata['img_tags'] = []
         if tag in metadata['img_tags']:
-            lg.debug(f"Tag '{tag}' already exists in dataset ID '{ds_id}'.")
+            self.lg.debug(f"Tag '{tag}' already exists in dataset ID '{ds_id}'.")
             # metadata['img_tags']=
             # return False
         else:
             metadata['img_tags'].append(tag)
         if tag in metadata:
-            lg.debug(f"Tag '{tag}' already exists in dataset ID '{ds_id}', updating its data.")
+            self.lg.debug(f"Tag '{tag}' already exists in dataset ID '{ds_id}', updating its data.")
             # return False
             metadata[tag].update(tag_data[tag])
         else:
             metadata[tag] = tag_data[tag]
         try:
             self.update_metadata(metadata)
-            lg.info(f"Tag '{tag}' inserted into metadata for dataset ID '{ds_id}'.")
+            self.lg.info(f"Tag '{tag}' inserted into metadata for dataset ID '{ds_id}'.")
             return True
         except Exception as e:
-            lg.error(f"Error inserting tag '{tag}' into metadata for dataset ID '{ds_id}': {e}")
+            self.lg.error(f"Error inserting tag '{tag}' into metadata for dataset ID '{ds_id}': {e}")
             return False
          
 class Iris:

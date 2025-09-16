@@ -9,8 +9,8 @@ DB_BASE_ = DB / Path("iris_db/")
 DS_ID = "IITD_v1"
 DS_NAME_ = Path(DS_ID)
 DS_BASE_ = DB_BASE_ / DS_NAME_
-# from lib import FileManager as FM
-# fm = FM()
+from lib import FileManager as FM
+fm = FM()
 
 fm.ensure_exists(DS_BASE_)
 
