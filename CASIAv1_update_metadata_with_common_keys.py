@@ -44,18 +44,18 @@ meta_doc = meta.get_metadata(DS_ID)
 #             '$set': {f'{tag}.img_specs': img_doc[tag]['img_specs']}}))
 #     except KeyError as e:
 #         print(f"KeyError for tag {tag}: {e}")
-# %% # unset unneeded keys from meta docs 
+# %% # unset unneeded keys from meta docs
 # for tag in ['norm_def', 'mask_irisseg']:
 #     print(meta.coll.update_one({'ds_id': DS_ID}, {'$unset': {f'{tag}': ""}}))
-#%% unset few fields in each doc in db.coll
+# %% unset few fields in each doc in db.coll
 # drop index
 # db.coll.drop_index('paths.rel_path__1')
 # db.coll.drop_index('paths.path__1')
-#%%
+# %%
 # db.coll.drop_index('folder_tags_1')
-#%% create index on img_tags
+# %% create index on img_tags
 # db.coll.create_index('img_tags')
-#%%
+# %%
 # db.coll.update_many({}, {'$set': {'img_tags': ['orig']}})
 # for doc in list(db.coll.find({})):
 #     # rename dic key
@@ -77,23 +77,23 @@ meta_doc = meta.get_metadata(DS_ID)
 
 # %% unset {tag}.injested_at fields in db.coll
 # for tag in img_doc['img_tags']:
-    # print(db.coll.update_many({}, {'$unset': {f'{tag}.injested_at': ""}}))
+# print(db.coll.update_many({}, {'$unset': {f'{tag}.injested_at': ""}}))
 
 # %% set {tag}.img_specs fields in meta.coll
 # img_doc['orig'] = {"img_specs": {
-    # "ext": ".bmp",
-    # "width": 320,
-    # "height": 240
+# "ext": ".bmp",
+# "width": 320,
+# "height": 240
 # }}
 # for tag in meta_doc['img_tags']:
-    # try:
-        # print(meta.coll.update_one({'ds_id': DS_ID}, {
-            #   '$set': {f'{tag}.img_specs': img_doc[tag]['img_specs']}}))
-    # except KeyError as e:
-        # print(f"KeyError for tag {tag}: {e}")
+# try:
+# print(meta.coll.update_one({'ds_id': DS_ID}, {
+#   '$set': {f'{tag}.img_specs': img_doc[tag]['img_specs']}}))
+# except KeyError as e:
+# print(f"KeyError for tag {tag}: {e}")
 # %% unset all {tag}.img_specs fields in db.coll
 # for tag in img_doc['img_tags']:
-    # print(db.coll.update_many({}, {'$unset': {f'{tag}.img_specs': ""}}))
+# print(db.coll.update_many({}, {'$unset': {f'{tag}.img_specs': ""}}))
 # %% set orig field in db.coll
 # for img_ in old_images_list[1:]:
 #     # name = YYY/NN_E.bmp
@@ -117,11 +117,11 @@ meta_doc = meta.get_metadata(DS_ID)
 
 # db.close()
 # %% meta stats per tag
-db.get_tag_data('orig')
-#%%
+db.get_tag_data("orig")
+# %%
 # db.get_tag_data('orig')
-for tag in meta_doc['img_tags']:
-    stats= db.get_tag_data(tag)
+for tag in meta_doc["img_tags"]:
+    stats = db.get_tag_data(tag)
     # append to {tag}.stats
-    print(meta.coll.update_one({'ds_id': DS_ID}, {'$set': {f'{tag}.stats': stats}}))
+    print(meta.coll.update_one({"ds_id": DS_ID}, {"$set": {f"{tag}.stats": stats}}))
 # %%

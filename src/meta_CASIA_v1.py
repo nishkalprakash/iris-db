@@ -1,44 +1,32 @@
 meta = {
-    "_id" : "68c907b8dd89bc27175b609b",
-    "ds_id" : "CASIA_v1",
-    "name" : "CASIA-IrisV1",
-    "doc" : "https://docs.google.com/document/d/1N_ninklrJYcEyG0EUuSx_KmBeHvnOYrtBTEw1yMZXNM/edit?tab=t.6abuy1phj6an",
-    "img_tags" : [
-        "orig"
-    ],
-    "orig" : {
-        "info" : "Original images",
-        "old_base_" : "~/datasets/iris_datasets/CASIA/V1/CASIA-IrisV1/CASIA-IrisV1/CASIA Iris Image Database (version 1.0)",
-        "img_specs" : {
-            "ext" : ".bmp",
-            "width" : 320,
-            "height" : 280
-        },
-    }
+    "_id": "68c907b8dd89bc27175b609b",
+    "ds_id": "CASIA_v1",
+    "name": "CASIA-IrisV1",
+    "doc": "https://docs.google.com/document/d/1N_ninklrJYcEyG0EUuSx_KmBeHvnOYrtBTEw1yMZXNM/edit?tab=t.6abuy1phj6an",
+    "img_tags": ["orig"],
+    "orig": {
+        "info": "Original images",
+        "old_base_": "~/datasets/iris_datasets/CASIA/V1/CASIA-IrisV1/CASIA-IrisV1/CASIA Iris Image Database (version 1.0)",
+        "img_specs": {"ext": ".bmp", "width": 320, "height": 280},
+    },
 }
 
-meta_long={
-    "_id" : "68c907b8dd89bc27175b609b",
-    "ds_id" : "CASIA_v1",
-    "name" : "CASIA-IrisV1",
-    "doc" : "https://docs.google.com/document/d/1N_ninklrJYcEyG0EUuSx_KmBeHvnOYrtBTEw1yMZXNM/edit?tab=t.6abuy1phj6an",
-    "img_tags" : [
-        "orig"
-    ],
-    "orig" : {
-        "info" : "Original images",
-        "old_base_" : "~/datasets/iris_datasets/CASIA/V1/CASIA-IrisV1/CASIA-IrisV1/CASIA Iris Image Database (version 1.0)",
-        "img_specs" : {
-            "ext" : ".bmp",
-            "width" : 320,
-            "height" : 280
-        },
-        "stats" : {
-            "num_images" : 756,
-            "num_people" : 108,
-            "num_eyes" : 108,
-            "num_eyes_per_person" : {
-                "1" : [
+meta_long = {
+    "_id": "68c907b8dd89bc27175b609b",
+    "ds_id": "CASIA_v1",
+    "name": "CASIA-IrisV1",
+    "doc": "https://docs.google.com/document/d/1N_ninklrJYcEyG0EUuSx_KmBeHvnOYrtBTEw1yMZXNM/edit?tab=t.6abuy1phj6an",
+    "img_tags": ["orig"],
+    "orig": {
+        "info": "Original images",
+        "old_base_": "~/datasets/iris_datasets/CASIA/V1/CASIA-IrisV1/CASIA-IrisV1/CASIA Iris Image Database (version 1.0)",
+        "img_specs": {"ext": ".bmp", "width": 320, "height": 280},
+        "stats": {
+            "num_images": 756,
+            "num_people": 108,
+            "num_eyes": 108,
+            "num_eyes_per_person": {
+                "1": [
                     "1",
                     "10",
                     "100",
@@ -146,14 +134,12 @@ meta_long={
                     "96",
                     "97",
                     "98",
-                    "99"
+                    "99",
                 ]
             },
-            "num_eyes_per_person_count" : {
-                "1" : 108
-            },
-            "num_samples_per_eye" : {
-                "7" : [
+            "num_eyes_per_person_count": {"1": 108},
+            "num_samples_per_eye": {
+                "7": [
                     "100_L",
                     "101_L",
                     "102_L",
@@ -261,16 +247,11 @@ meta_long={
                     "97_L",
                     "98_L",
                     "99_L",
-                    "9_L"
+                    "9_L",
                 ]
             },
-            "num_samples_per_eye_count" : {
-                "7" : 108
-            },
-            "num_sessions" : [
-                "1",
-                "2"
-            ]
-        }
-    }
+            "num_samples_per_eye_count": {"7": 108},
+            "num_sessions": ["1", "2"],
+        },
+    },
 }
