@@ -117,11 +117,11 @@ meta_doc = meta.get_metadata(DS_ID)
 
 # db.close()
 # %% meta stats per tag
-db.get_tag_data("orig")
+db.get_stats("orig")
 # %%
 # db.get_tag_data('orig')
 for tag in meta_doc["img_tags"]:
-    stats = db.get_tag_data(tag)
+    stats = db.get_stats(tag)
     # append to {tag}.stats
     print(meta.coll.update_one({"ds_id": DS_ID}, {"$set": {f"{tag}.stats": stats}}))
 # %%

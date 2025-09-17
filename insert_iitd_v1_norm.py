@@ -120,7 +120,7 @@ The IIT Delhi IrisDatabase (Version 1.0) is publicly available for academic use 
     },
     "img_tags": ["orig", new_img_tag],
     # "db_specs":{
-    "orig": db.get_tag_data(),
+    "orig": db.get_stats(),
     new_img_tag: {
         "info": "Normalized images default using Daugman's rubber sheet model",
         'orig_base_path': str(ORIG_DB_BASE_),

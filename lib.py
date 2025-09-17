@@ -5,7 +5,7 @@ from pathlib import Path
 import logging
 pymongo_logger = logging.getLogger('pymongo')
 # Set its level to WARNING to silence INFO and DEBUG messages
-pymongo_logger.setLevel(logging.WARNING)
+pymongo_logger.setLevel(logging.ERROR)
 
 
 class LoggerManager:
@@ -13,7 +13,7 @@ class LoggerManager:
     _logger = None
 
     @classmethod
-    def get_logger(cls, log_dir="logs/", name=__name__, level="INFO"):
+    def get_logger(cls,  name=__name__, level="INFO", log_dir="logs/",):
         if cls._logger is None:
             log_dir = Path(log_dir)
             log_dir.mkdir(exist_ok=True)
@@ -39,7 +39,7 @@ import shutil
 class FileManager:
     """Singleton File Manager for consistent file operations."""
     _instance = None
-    lg = LoggerManager.get_logger(__name__,"INFO")
+    lg = LoggerManager.get_logger(name=__name__,level="ERROR")
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(FileManager, cls).__new__(cls)

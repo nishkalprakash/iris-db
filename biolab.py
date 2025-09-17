@@ -60,7 +60,7 @@ class IrisDB():
         self.meta_coll_name = self.META_COLL_NAME if meta_coll_name is None else meta_coll_name
         # self.db_coll = DB_COLL if db_coll is None else db_coll
         ## get user:passwd from mongo_creds.txt file
-        self.lg = LM.get_logger(__name__,level="INFO")
+        self.lg = LM.get_logger(name=__name__,level="INFO")
         self.fm = FM()
         user,passwd = self.fm.read_creds()
         self._mongo_admin_user = user
@@ -305,22 +305,27 @@ class IrisDB():
         self.lg.info(f"DS_ID: {self.ds_id} \n num_images: {count}")
         return count
 
-
-    def get_tag_data(self, tag='orig', orig_db_base=None):
+    def get_session_count(self,tag='orig'):
+        count = len(self.find({'img_tags': tag}).distinct('session_id'))
+        self.lg.info(f"DS_ID: {self.ds_id} \n num_sessions: {count}")
+        return count
+    
+    def get_stats(self, tag='orig', large=False):
         # img = self.find_one({}, {'_id': 0, })
         data = {
             # "info": "original images",
             "num_images": self.get_num_images(tag),
             "num_people": self.get_num_people(tag),
             "num_eyes": self.get_num_eyes(tag),
-            "num_eyes_per_person": self.get_num_eyes_per_person(tag),
             "num_eyes_per_person_count": self.get_num_eyes_per_person_count(tag), 
-            "num_samples_per_eye": self.get_num_samples_per_eye(tag),
             "num_samples_per_eye_count": self.get_num_samples_per_eye_count(tag),
-            "num_sessions": self.find({'img_tags': tag,}).distinct('session_id'),
-            # 'img_specs': img['img_specs'],
-            # 'orig_base_path': str(orig_db_base) if orig_db_base is not None else img['orig_paths']['base_'],
+            "num_sessions": self.get_session_count(tag),
         }
+        if large:
+            data.update({
+            "num_eyes_per_person": self.get_num_eyes_per_person(tag),
+            "num_samples_per_eye": self.get_num_samples_per_eye(tag),
+        })
         return data
 
 

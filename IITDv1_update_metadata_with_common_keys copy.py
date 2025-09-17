@@ -71,7 +71,7 @@ img_doc = db.find_one({})
 
 # db.get_tag_data('orig')
 for tag in img_doc['img_tags']:
-    stats= db.get_tag_data(tag)
+    stats= db.get_stats(tag)
     # append to {tag}.stats
     print(meta.coll.update_one({'ds_id': DS_ID}, {'$set': {f'{tag}.stats': stats}}))
 # %%
