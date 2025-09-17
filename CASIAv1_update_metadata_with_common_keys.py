@@ -125,3 +125,6 @@ for tag in meta_doc["img_tags"]:
     # append to {tag}.stats
     print(meta.coll.update_one({"ds_id": DS_ID}, {"$set": {f"{tag}.stats": stats}}))
 # %%
+# export collection to jsonl
+# db.export_jsonl(DB / 
+

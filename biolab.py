@@ -1,6 +1,9 @@
 from pymongo import MongoClient
 from pymongo.collection import Collection
-from lib import LoggerManager as LM, FileManager as FM
+from lib import LoggerManager as LM 
+from lib import FileManager as FM
+from lib import MongoJSONDecoder as MJDec
+from lib import MongoJSONEncoder as MJEnc
 
 
 
@@ -29,7 +32,8 @@ def _iso_date(date_string=None):
 
 # Assign to ISODate to match MongoDB shell syntax
 ISODate = _iso_date
-
+from pathlib import Path
+import json
 
 class IrisDB():
     """
@@ -41,6 +45,7 @@ class IrisDB():
     DB_IP = 'localhost'
     DB_NAME = 'iris_db'
     META_COLL_NAME = 'meta'
+    DB_BASE_ = Path(f"~/datasets/{DB_NAME}/").expanduser()
 
     def __init__(
         self, 
@@ -104,7 +109,7 @@ class IrisDB():
     @property
     @lru_cache(maxsize=None) # Caches the result after the first call
     def avail_ds(self) -> set:
-        """Lazily creates and returns the set of available iris_db from meta coll using the mongo client."""
+        """LazilB creates and returns the set of available {DB_NAME} from meta coll using the mongo client."""
         self.lg.debug("Connecting to meta db to find avail ds")
         # This will automatically trigger the mongo_client property if needed
         try:
@@ -393,6 +398,47 @@ class IrisDB():
     #     self.coll.insert_one(doc)
     #     self.lg.info(f"Inserted document into {self.ds_name} collection.")
     #     return True
+    def export_to_jsonl(self, query={}, proj={}, dest_path_=None, coll=None):
+        """Export the connected collection to a jsonl file"""
+        if coll is None:
+            coll = self.coll
+        if dest_path_ is None:
+            dest_path_ = self.DB_BASE_/self.ds_id/f"{self.ds_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl"
+        self.fm.ensure_exists(dest_path_.parent)
+        # Custom JSON encoder to handle MongoDB-specific types
+        with dest_path_.open('w', encoding='utf-8') as jsonl__:
+            for doc in coll.find(query, proj):
+                jsonl__.write(json.dumps(doc, cls=MJEnc) + '\n')
+        self.lg.info(f"Exported collection {self.ds_id} to {dest_path_}")
+        return dest_path_
+
+    def import_from_jsonl(self, src_path_=None, coll=None):
+        """Import a jsonl file into the connected collection"""
+        if coll is None:
+            coll = self.coll
+        
+        if src_path_ is None:
+            src_base_ = self.DB_BASE_/self.ds_id
+            # find latest file in src_base_ with .jsonl extension
+            jsonl_files = list(src_base_.glob("*.jsonl"))
+            if not jsonl_files:
+                self.lg.error(f"No JSONL files found in {src_base_}.")
+                return None
+            # Sort files by modification time and take the latest
+            src_path_ = max(jsonl_files, key=lambda f: f.stat().st_mtime)
+
+        inserted_ids = []
+        with Path(src_path_).open('r', encoding='utf-8') as jsonl__:
+            for line in jsonl__:
+                doc = json.loads(line, cls=MJDec)
+                try:
+                    res = coll.insert_one(doc)
+                    inserted_ids.append(res.inserted_id)
+                except Exception as e:
+                    self.lg.error(f"Error inserting document: {e}")
+        self.lg.info(f"Imported {len(inserted_ids)} documents into collection {self.ds_id} from {src_path_}")
+        return inserted_ids
+    
     def __enter__(self):
         """Called when entering the 'with' statement."""
         self.lg.debug("Entering context...")

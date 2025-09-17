@@ -13,7 +13,7 @@ class LoggerManager:
     _logger = None
 
     @classmethod
-    def get_logger(cls, log_dir="logs/", name=__name__, level="DEBUG"):
+    def get_logger(cls, log_dir="logs/", name=__name__, level="INFO"):
         if cls._logger is None:
             log_dir = Path(log_dir)
             log_dir.mkdir(exist_ok=True)
@@ -96,3 +96,36 @@ class FileManager:
 # import LoggerManager as lm
 # logging.WARNING
 # %%
+import json
+from bson import ObjectId
+from datetime import datetime
+
+class MongoJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+    
+class MongoJSONDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, obj):
+        for key, value in obj.items():
+            if isinstance(value, str):
+                try:
+                    # Attempt to convert _id key to ObjectId
+                    if key == "_id":
+                        obj[key] = ObjectId(value)
+                except Exception:
+                    pass
+                try:
+                    # Attempt to convert string to datetime
+                    if 'T' in value and (len(value) >= 19):  # Basic check for ISO format
+                        obj[key] = datetime.fromisoformat(value)
+                except Exception:
+                    pass
+        return obj
+
